@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#07101f">
+  <meta name="description" content="기호를 복제하고 배열해 전투 공식을 만드는 3분 군단 로그라이트 프로토타입">
+  <title>FRCTL//SWARM — Web Prototype</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="page-shell">
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">GATE A // WEB PROTOTYPE</p>
+        <h1>FRCTL<span>//</span>SWARM</h1>
+      </div>
+      <div class="status"><i></i> SYSTEM ONLINE</div>
+    </header>
+
+    <section class="game-frame" aria-label="FRCTL SWARM 게임">
+      <canvas id="game" width="1280" height="720" tabindex="0" aria-label="게임 화면. WASD 또는 방향키로 이동하고 Space로 블링크합니다."></canvas>
+
+      <div id="upgrade-overlay" class="overlay" hidden>
+        <div class="overlay-rule"></div>
+        <p class="overlay-kicker">COMBAT PROCESS SUSPENDED</p>
+        <h2 id="upgrade-title">SELECT NEW FORMULA</h2>
+        <div id="upgrade-cards" class="cards"></div>
+        <p class="key-hint">MOUSE / 1 · 2 · 3</p>
+      </div>
+
+      <div id="pause-overlay" class="overlay compact" hidden>
+        <p class="overlay-kicker">PROCESS SUSPENDED</p>
+        <h2>PAUSED</h2>
+        <button id="resume-button" class="action-button">RESUME // ESC</button>
+      </div>
+
+      <div id="result-overlay" class="overlay result" hidden>
+        <p class="overlay-kicker">RUN ANALYSIS COMPLETE</p>
+        <h2 id="result-title">FORMULA VERIFIED</h2>
+        <div id="result-stats" class="result-stats"></div>
+        <button id="restart-button" class="action-button">RECOMPILE RUN // ENTER · SPACE</button>
+      </div>
+
+      <div class="touch-controls" aria-label="터치 조작">
+        <div class="dpad">
+          <button data-key="ArrowUp" aria-label="위">▲</button>
+          <button data-key="ArrowLeft" aria-label="왼쪽">◀</button>
+          <button data-key="ArrowDown" aria-label="아래">▼</button>
+          <button data-key="ArrowRight" aria-label="오른쪽">▶</button>
+        </div>
+        <button id="touch-blink" class="blink-button">BLINK</button>
+      </div>
+    </section>
+
+    <section class="readout">
+      <div>
+        <span class="readout-label">CONTROL</span>
+        <strong>WASD / ARROWS</strong> MOVE&nbsp;&nbsp; <strong>SPACE</strong> BLINK&nbsp;&nbsp; <strong>ESC</strong> PAUSE
+      </div>
+      <p>직접 공격하지 않습니다. 이동으로 에너지를 회수하고 편대의 공식을 완성하세요.</p>
+    </section>
+  </main>
+
+  <noscript>이 프로토타입을 실행하려면 JavaScript를 활성화해야 합니다.</noscript>
+  <script src="game.js"></script>
+</body>
+</html>
+

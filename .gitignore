@@ -1,0 +1,9 @@
+# Godot generated editor/import state
+.godot/
+
+# Local exports
+builds/*
+!builds/.gitkeep
+
+# OS metadata
+.DS_Store
