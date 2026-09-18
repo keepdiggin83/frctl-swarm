@@ -8,6 +8,9 @@ script = ExtResource("1_main")
 
 [node name="World" type="Node2D" parent="."]
 
+[node name="Camera" type="Camera2D" parent="World"]
+enabled = true
+
 [node name="Orbs" type="Node2D" parent="World"]
 z_index = 1
 

@@ -35,7 +35,7 @@ func tick(delta: float) -> void:
 		return
 	position += velocity * delta
 	life_left -= delta
-	if life_left <= 0.0 or not GameConfig.ARENA_RECT.grow(80.0).has_point(position):
+	if life_left <= 0.0 or not GameConfig.MAP_RECT.grow(80.0).has_point(position):
 		deactivate()
 
 
@@ -54,4 +54,3 @@ func _draw() -> void:
 	draw_line(Vector2(-12.0, 0.0), Vector2(5.0, 0.0), Color(0.32, 0.96, 0.82, 0.25), 7.0, true)
 	draw_line(Vector2(-8.0, 0.0), Vector2(6.0, 0.0), GameConfig.COLOR_WHITE, 2.5, true)
 	draw_circle(Vector2(6.0, 0.0), GameConfig.PROJECTILE_RADIUS, GameConfig.COLOR_CYAN)
-

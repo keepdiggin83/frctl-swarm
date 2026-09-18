@@ -4,7 +4,7 @@
 
 ## Web prototype
 
-`docs/`에는 GitHub Pages에서 바로 실행할 수 있는 HTML5 Canvas 버전이 포함되어 있습니다. Godot 버전과 같은 Gate A 루프인 이동, 블링크, PULSE 자동 공격, 에너지 선택, MITOSIS, DELTA 편대, 3분 결과 화면을 브라우저 API만으로 구현했습니다.
+`docs/`에는 GitHub Pages에서 바로 실행할 수 있는 HTML5 Canvas 버전이 포함되어 있습니다. Godot 버전과 같은 Gate A 루프인 3×3 맵 이동, 블링크, PULSE 자동 공격, 에너지 선택, MITOSIS, DELTA 편대, 3분 결과 화면을 브라우저 API만으로 구현했습니다.
 
 로컬 미리보기:
 
@@ -36,7 +36,8 @@ Godot 4.x에서 저장소 루트의 `project.godot`을 연 뒤 **F6이 아니라
 
 ## 구현 상태
 
-- 16:9 단일 아레나와 3분 런
+- 1280×720 화면 9개를 잇는 3×3 월드(3840×2160), 추적 카메라와 섹터 HUD
+- 현재 카메라 화면 밖이면서 맵 안쪽인 방향만 골라 CHASER 생성
 - 30초 라운드 6개, 라운드마다 적 생성률 2배 증가 (`×1` → `×32`)
 - 5칸 체력, 피격 무적, 이동 방향 블링크와 재사용 링
 - 풀링된 CHASER, PULSE 탄환, 에너지 조각
@@ -60,7 +61,7 @@ Godot 설치 환경에서 다음 smoke test를 실행할 수 있습니다.
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path . --script res://tests/smoke_test.gd
 ```
 
-테스트는 씬 초기화, 이동, 블링크, 탄환 처치, MITOSIS 복제, DELTA 전환, 3개 업그레이드 후보 생성을 확인합니다.
+테스트는 씬 초기화, 3×3 맵 장거리 이동, 화면 밖 적 생성, 블링크, 탄환 처치, MITOSIS 복제, DELTA 전환, 3개 업그레이드 후보 생성을 확인합니다.
 
 3분 전체 런을 가속 재생해 풀링·난이도 증가·레벨업·MITOSIS 상한·승리 전환을 확인하려면 다음을 실행합니다.
 

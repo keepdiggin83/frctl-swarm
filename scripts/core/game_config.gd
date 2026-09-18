@@ -2,7 +2,10 @@ class_name GameConfig
 extends RefCounted
 
 const VIEW_SIZE := Vector2(1280.0, 720.0)
-const ARENA_RECT := Rect2(36.0, 76.0, 1208.0, 598.0)
+const MAP_COLUMNS := 3
+const MAP_ROWS := 3
+const MAP_SIZE := Vector2(VIEW_SIZE.x * MAP_COLUMNS, VIEW_SIZE.y * MAP_ROWS)
+const MAP_RECT := Rect2(Vector2.ZERO, MAP_SIZE)
 const RUN_DURATION := 180.0
 
 const PLAYER_MAX_HP := 5

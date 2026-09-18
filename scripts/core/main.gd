@@ -10,6 +10,7 @@ const FX_SCRIPT = preload("res://scripts/fx/fx_layer.gd")
 enum RunState { PLAYING, UPGRADING, PAUSED, ENDED }
 
 @onready var enemy_layer: Node2D = $World/Enemies
+@onready var camera: Camera2D = $World/Camera
 @onready var projectile_layer: Node2D = $World/Projectiles
 @onready var orb_layer: Node2D = $World/Orbs
 @onready var unit_layer: Node2D = $World/Units
@@ -54,6 +55,10 @@ var formation := "ORBIT"
 
 func _ready() -> void:
 	randomize()
+	camera.limit_left = int(GameConfig.MAP_RECT.position.x)
+	camera.limit_top = int(GameConfig.MAP_RECT.position.y)
+	camera.limit_right = int(GameConfig.MAP_RECT.end.x)
+	camera.limit_bottom = int(GameConfig.MAP_RECT.end.y)
 	player = PLAYER_SCRIPT.new()
 	player_layer.add_child(player)
 	fx = FX_SCRIPT.new()
@@ -121,8 +126,9 @@ func reset_run() -> void:
 	acquired_rules.clear()
 	formation = "ORBIT"
 	run_state = RunState.PLAYING
-	position = Vector2.ZERO
+	camera.offset = Vector2.ZERO
 	player.reset_player()
+	camera.position = camera_center_position()
 	fx.reset_fx()
 	hud.hide_upgrade()
 	hud.hide_result()
@@ -145,11 +151,12 @@ func _process(delta: float) -> void:
 	orbit_phase += delta * 0.45
 	screen_shake = maxf(0.0, screen_shake - delta * 18.0)
 	if screen_shake > 0.0:
-		position = Vector2(randf_range(-screen_shake, screen_shake), randf_range(-screen_shake, screen_shake))
+		camera.offset = Vector2(randf_range(-screen_shake, screen_shake), randf_range(-screen_shake, screen_shake))
 	else:
-		position = Vector2.ZERO
+		camera.offset = Vector2.ZERO
 
 	var blink_started := player.tick(delta)
+	camera.position = camera_center_position()
 	if blink_started:
 		fx.burst(player.position, GameConfig.COLOR_CYAN, 36.0)
 
@@ -181,17 +188,30 @@ func spawn_enemy() -> void:
 	var enemy = first_inactive(enemies)
 	if enemy == null:
 		return
-	var side := randi() % 4
+	var view_rect := camera_world_rect()
+	var spawn_margin := GameConfig.ENEMY_RADIUS + 26.0
+	var valid_sides: Array[int] = []
+	if view_rect.position.y - spawn_margin >= GameConfig.MAP_RECT.position.y:
+		valid_sides.append(0)
+	if view_rect.end.x + spawn_margin <= GameConfig.MAP_RECT.end.x:
+		valid_sides.append(1)
+	if view_rect.end.y + spawn_margin <= GameConfig.MAP_RECT.end.y:
+		valid_sides.append(2)
+	if view_rect.position.x - spawn_margin >= GameConfig.MAP_RECT.position.x:
+		valid_sides.append(3)
+	if valid_sides.is_empty():
+		return
+	var side: int = valid_sides.pick_random()
 	var spawn_position := Vector2.ZERO
 	match side:
 		0:
-			spawn_position = Vector2(randf_range(GameConfig.ARENA_RECT.position.x, GameConfig.ARENA_RECT.end.x), GameConfig.ARENA_RECT.position.y + 8.0)
+			spawn_position = Vector2(randf_range(view_rect.position.x + GameConfig.ENEMY_RADIUS, view_rect.end.x - GameConfig.ENEMY_RADIUS), view_rect.position.y - spawn_margin)
 		1:
-			spawn_position = Vector2(GameConfig.ARENA_RECT.end.x - 8.0, randf_range(GameConfig.ARENA_RECT.position.y, GameConfig.ARENA_RECT.end.y))
+			spawn_position = Vector2(view_rect.end.x + spawn_margin, randf_range(view_rect.position.y + GameConfig.ENEMY_RADIUS, view_rect.end.y - GameConfig.ENEMY_RADIUS))
 		2:
-			spawn_position = Vector2(randf_range(GameConfig.ARENA_RECT.position.x, GameConfig.ARENA_RECT.end.x), GameConfig.ARENA_RECT.end.y - 8.0)
+			spawn_position = Vector2(randf_range(view_rect.position.x + GameConfig.ENEMY_RADIUS, view_rect.end.x - GameConfig.ENEMY_RADIUS), view_rect.end.y + spawn_margin)
 		_:
-			spawn_position = Vector2(GameConfig.ARENA_RECT.position.x + 8.0, randf_range(GameConfig.ARENA_RECT.position.y, GameConfig.ARENA_RECT.end.y))
+			spawn_position = Vector2(view_rect.position.x - spawn_margin, randf_range(view_rect.position.y + GameConfig.ENEMY_RADIUS, view_rect.end.y - GameConfig.ENEMY_RADIUS))
 	var minute_scale := 1.0 + maxf(0.0, elapsed - 120.0) / 60.0 * 0.18
 	var speed_scale := 1.0 + elapsed / GameConfig.RUN_DURATION * 0.20
 	enemy.activate(spawn_position, minute_scale, speed_scale)
@@ -497,6 +517,7 @@ func update_hud() -> void:
 		"score": score,
 		"risk": current_risk(),
 		"round": current_round,
+		"sector": current_sector(),
 		"formation": formation + ("  //  PIERCE +1" if formation == "DELTA" else ""),
 		"formula": current_formula(),
 		"enemies": active_enemy_count(),
@@ -506,6 +527,24 @@ func update_hud() -> void:
 		"xp_needed": xp_needed,
 		"blink": player.blink_charge()
 	})
+
+
+func camera_center_position() -> Vector2:
+	var half_view := GameConfig.VIEW_SIZE * 0.5
+	return Vector2(
+		clampf(player.position.x, GameConfig.MAP_RECT.position.x + half_view.x, GameConfig.MAP_RECT.end.x - half_view.x),
+		clampf(player.position.y, GameConfig.MAP_RECT.position.y + half_view.y, GameConfig.MAP_RECT.end.y - half_view.y)
+	)
+
+
+func camera_world_rect() -> Rect2:
+	return Rect2(camera_center_position() - GameConfig.VIEW_SIZE * 0.5, GameConfig.VIEW_SIZE)
+
+
+func current_sector() -> String:
+	var column := clampi(int(floor((player.position.x - GameConfig.MAP_RECT.position.x) / GameConfig.VIEW_SIZE.x)) + 1, 1, GameConfig.MAP_COLUMNS)
+	var row := clampi(int(floor((player.position.y - GameConfig.MAP_RECT.position.y) / GameConfig.VIEW_SIZE.y)) + 1, 1, GameConfig.MAP_ROWS)
+	return "%d:%d" % [column, row]
 
 
 func end_run(won: bool) -> void:
@@ -565,19 +604,26 @@ func save_best_score() -> void:
 
 
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, GameConfig.VIEW_SIZE), GameConfig.COLOR_BG)
-	var rect := GameConfig.ARENA_RECT
+	var rect := GameConfig.MAP_RECT
+	draw_rect(rect, GameConfig.COLOR_BG)
 	for x in range(int(rect.position.x), int(rect.end.x) + 1, 40):
-		var color := GameConfig.COLOR_GRID_MAJOR if (x - int(rect.position.x)) % 200 == 0 else GameConfig.COLOR_GRID
-		draw_line(Vector2(x, rect.position.y), Vector2(x, rect.end.y), Color(color, 0.30), 1.0)
+		var color := GameConfig.COLOR_GRID_MAJOR if x % 200 == 0 else GameConfig.COLOR_GRID
+		draw_line(Vector2(x, rect.position.y), Vector2(x, rect.end.y), Color(color, 0.34), 1.0)
 	for y in range(int(rect.position.y), int(rect.end.y) + 1, 40):
-		var color := GameConfig.COLOR_GRID_MAJOR if (y - int(rect.position.y)) % 200 == 0 else GameConfig.COLOR_GRID
-		draw_line(Vector2(rect.position.x, y), Vector2(rect.end.x, y), Color(color, 0.30), 1.0)
-	draw_rect(rect, Color(GameConfig.COLOR_CYAN_DIM, 0.55), false, 2.0)
-	draw_line(Vector2(rect.position.x, rect.position.y + 18), Vector2(rect.position.x, rect.position.y), GameConfig.COLOR_CYAN, 2.0)
-	draw_line(Vector2(rect.position.x, rect.position.y), Vector2(rect.position.x + 18, rect.position.y), GameConfig.COLOR_CYAN, 2.0)
-	draw_line(Vector2(rect.end.x - 18, rect.end.y), rect.end, GameConfig.COLOR_CYAN, 2.0)
-	draw_line(rect.end, Vector2(rect.end.x, rect.end.y - 18), GameConfig.COLOR_CYAN, 2.0)
+		var color := GameConfig.COLOR_GRID_MAJOR if y % 200 == 0 else GameConfig.COLOR_GRID
+		draw_line(Vector2(rect.position.x, y), Vector2(rect.end.x, y), Color(color, 0.34), 1.0)
+
+	for column in range(1, GameConfig.MAP_COLUMNS):
+		var x := column * GameConfig.VIEW_SIZE.x
+		draw_line(Vector2(x, rect.position.y), Vector2(x, rect.end.y), Color(GameConfig.COLOR_CYAN_DIM, 0.72), 3.0)
+	for row in range(1, GameConfig.MAP_ROWS):
+		var y := row * GameConfig.VIEW_SIZE.y
+		draw_line(Vector2(rect.position.x, y), Vector2(rect.end.x, y), Color(GameConfig.COLOR_CYAN_DIM, 0.72), 3.0)
+	for row in range(GameConfig.MAP_ROWS):
+		for column in range(GameConfig.MAP_COLUMNS):
+			var label_position := Vector2(column * GameConfig.VIEW_SIZE.x + 62.0, row * GameConfig.VIEW_SIZE.y + 152.0)
+			draw_string(ThemeDB.fallback_font, label_position, "SECTOR %d:%d" % [column + 1, row + 1], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 18, Color(GameConfig.COLOR_CYAN, 0.20))
+	draw_rect(rect, Color(GameConfig.COLOR_CYAN, 0.76), false, 4.0)
 
 	if units.is_empty():
 		return

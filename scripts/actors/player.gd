@@ -14,7 +14,7 @@ var trail: Array[Vector2] = []
 
 func reset_player() -> void:
 	hp = GameConfig.PLAYER_MAX_HP
-	position = GameConfig.ARENA_RECT.get_center()
+	position = GameConfig.MAP_RECT.get_center()
 	last_direction = Vector2.UP
 	invulnerable_left = 0.0
 	blink_cooldown_left = 0.0
@@ -54,8 +54,8 @@ func tick(delta: float) -> bool:
 		if not trail.is_empty():
 			trail.pop_back()
 
-	position.x = clampf(position.x, GameConfig.ARENA_RECT.position.x + 18.0, GameConfig.ARENA_RECT.end.x - 18.0)
-	position.y = clampf(position.y, GameConfig.ARENA_RECT.position.y + 18.0, GameConfig.ARENA_RECT.end.y - 18.0)
+	position.x = clampf(position.x, GameConfig.MAP_RECT.position.x + 18.0, GameConfig.MAP_RECT.end.x - 18.0)
+	position.y = clampf(position.y, GameConfig.MAP_RECT.position.y + 18.0, GameConfig.MAP_RECT.end.y - 18.0)
 	queue_redraw()
 	return started_blink
 
@@ -93,4 +93,3 @@ func _draw() -> void:
 
 	var start_angle := -PI / 2.0
 	draw_arc(Vector2.ZERO, 27.0, start_angle, start_angle + TAU * blink_charge(), 42, GameConfig.COLOR_CYAN, 3.0, true)
-

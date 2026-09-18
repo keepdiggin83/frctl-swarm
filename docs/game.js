@@ -3,7 +3,8 @@
 
   const C = {
     W: 1280, H: 720,
-    arena: { x: 36, y: 76, w: 1208, h: 598 },
+    mapCols: 3, mapRows: 3,
+    map: { x: 0, y: 0, w: 3840, h: 2160 },
     runDuration: 180,
     playerSpeed: 280, playerRadius: 15, maxHp: 5, iFrame: 0.7,
     blinkDistance: 150, blinkDuration: 0.12, blinkCooldown: 2,
@@ -121,7 +122,7 @@
       this.nextEnemyId = 1;
       this.nextUnitId = 1;
       this.player = {
-        x: C.W / 2, y: 375, hp: C.maxHp,
+        x: C.map.w / 2, y: C.map.h / 2, hp: C.maxHp,
         lastX: 0, lastY: -1, invuln: 0,
         blinkLeft: 0, blinkCooldown: 0, blinkAgo: 99, trail: []
       };
@@ -205,8 +206,27 @@
         p.y += y * C.playerSpeed * dt;
       }
 
-      p.x = clamp(p.x, C.arena.x + 18, C.arena.x + C.arena.w - 18);
-      p.y = clamp(p.y, C.arena.y + 18, C.arena.y + C.arena.h - 18);
+      p.x = clamp(p.x, C.map.x + 18, C.map.x + C.map.w - 18);
+      p.y = clamp(p.y, C.map.y + 18, C.map.y + C.map.h - 18);
+    }
+
+    cameraCenter() {
+      return {
+        x: clamp(this.player.x, C.map.x + C.W / 2, C.map.x + C.map.w - C.W / 2),
+        y: clamp(this.player.y, C.map.y + C.H / 2, C.map.y + C.map.h - C.H / 2)
+      };
+    }
+
+    cameraRect() {
+      const center = this.cameraCenter();
+      return { x: center.x - C.W / 2, y: center.y - C.H / 2, w: C.W, h: C.H };
+    }
+
+    currentSector() {
+      return {
+        column: clamp(Math.floor((this.player.x - C.map.x) / C.W) + 1, 1, C.mapCols),
+        row: clamp(Math.floor((this.player.y - C.map.y) / C.H) + 1, 1, C.mapRows)
+      };
     }
 
     updateSpawning(dt) {
@@ -230,12 +250,20 @@
     }
 
     spawnEnemy() {
-      const side = Math.floor(Math.random() * 4);
+      const view = this.cameraRect();
+      const margin = C.enemyRadius + 26;
+      const validSides = [];
+      if (view.y - margin >= C.map.y) validSides.push(0);
+      if (view.x + view.w + margin <= C.map.x + C.map.w) validSides.push(1);
+      if (view.y + view.h + margin <= C.map.y + C.map.h) validSides.push(2);
+      if (view.x - margin >= C.map.x) validSides.push(3);
+      if (!validSides.length) return;
+      const side = validSides[Math.floor(Math.random() * validSides.length)];
       let x, y;
-      if (side === 0) { x = C.arena.x + Math.random() * C.arena.w; y = C.arena.y + 8; }
-      else if (side === 1) { x = C.arena.x + C.arena.w - 8; y = C.arena.y + Math.random() * C.arena.h; }
-      else if (side === 2) { x = C.arena.x + Math.random() * C.arena.w; y = C.arena.y + C.arena.h - 8; }
-      else { x = C.arena.x + 8; y = C.arena.y + Math.random() * C.arena.h; }
+      if (side === 0) { x = view.x + C.enemyRadius + Math.random() * (view.w - C.enemyRadius * 2); y = view.y - margin; }
+      else if (side === 1) { x = view.x + view.w + margin; y = view.y + C.enemyRadius + Math.random() * (view.h - C.enemyRadius * 2); }
+      else if (side === 2) { x = view.x + C.enemyRadius + Math.random() * (view.w - C.enemyRadius * 2); y = view.y + view.h + margin; }
+      else { x = view.x - margin; y = view.y + C.enemyRadius + Math.random() * (view.h - C.enemyRadius * 2); }
       const healthScale = 1 + Math.max(0, this.elapsed - 120) / 60 * 0.18;
       this.enemies.push({
         id: this.nextEnemyId++, x, y,
@@ -353,8 +381,8 @@
         }
       }
       this.projectiles = this.projectiles.filter((p) => p.life > 0
-        && p.x > C.arena.x - 80 && p.x < C.arena.x + C.arena.w + 80
-        && p.y > C.arena.y - 80 && p.y < C.arena.y + C.arena.h + 80);
+        && p.x > C.map.x - 80 && p.x < C.map.x + C.map.w + 80
+        && p.y > C.map.y - 80 && p.y < C.map.y + C.map.h + 80);
     }
 
     killEnemy(index) {
@@ -554,8 +582,12 @@
     }
 
     draw() {
+      ctx.fillStyle = C.bg;
+      ctx.fillRect(0, 0, C.W, C.H);
       ctx.save();
       if (this.screenShake > 0) ctx.translate((Math.random() - .5) * this.screenShake * 2, (Math.random() - .5) * this.screenShake * 2);
+      const camera = this.cameraCenter();
+      ctx.translate(C.W / 2 - camera.x, C.H / 2 - camera.y);
       this.drawBackground();
       this.drawFormation();
       this.drawOrbs();
@@ -564,13 +596,13 @@
       this.drawUnits();
       this.drawPlayer();
       this.drawEffects();
-      this.drawHud();
       ctx.restore();
+      this.drawHud();
     }
 
     drawBackground() {
-      ctx.fillStyle = C.bg; ctx.fillRect(0, 0, C.W, C.H);
-      const a = C.arena;
+      const a = C.map;
+      ctx.fillStyle = C.bg; ctx.fillRect(a.x, a.y, a.w, a.h);
       ctx.lineWidth = 1;
       for (let x = a.x; x <= a.x + a.w; x += 40) {
         ctx.strokeStyle = rgba((x - a.x) % 200 === 0 ? C.gridMajor : C.grid, .42);
@@ -580,7 +612,22 @@
         ctx.strokeStyle = rgba((y - a.y) % 200 === 0 ? C.gridMajor : C.grid, .42);
         ctx.beginPath(); ctx.moveTo(a.x, y); ctx.lineTo(a.x + a.w, y); ctx.stroke();
       }
-      ctx.strokeStyle = rgba(C.cyanDim, .75); ctx.lineWidth = 2; ctx.strokeRect(a.x, a.y, a.w, a.h);
+      ctx.strokeStyle = rgba(C.cyanDim, .72); ctx.lineWidth = 3;
+      for (let column = 1; column < C.mapCols; column++) {
+        const x = a.x + column * C.W;
+        ctx.beginPath(); ctx.moveTo(x, a.y); ctx.lineTo(x, a.y + a.h); ctx.stroke();
+      }
+      for (let row = 1; row < C.mapRows; row++) {
+        const y = a.y + row * C.H;
+        ctx.beginPath(); ctx.moveTo(a.x, y); ctx.lineTo(a.x + a.w, y); ctx.stroke();
+      }
+      ctx.fillStyle = rgba(C.cyan, .2); ctx.font = "18px ui-monospace, monospace"; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+      for (let row = 0; row < C.mapRows; row++) {
+        for (let column = 0; column < C.mapCols; column++) {
+          ctx.fillText(`SECTOR ${column + 1}:${row + 1}`, a.x + column * C.W + 62, a.y + row * C.H + 152);
+        }
+      }
+      ctx.strokeStyle = rgba(C.cyan, .76); ctx.lineWidth = 4; ctx.strokeRect(a.x, a.y, a.w, a.h);
     }
 
     drawFormation() {
@@ -711,6 +758,10 @@
       ctx.fillText(`SCORE  ${pad(this.score, 6)}  //  RISK ×${this.risk.toFixed(2)}`, 1244, 25);
       ctx.textAlign = "left"; ctx.font = "15px ui-monospace, monospace"; ctx.fillStyle = C.cyan;
       ctx.fillText(`FORMATION  //  ${this.formation}${this.formation === "DELTA" ? "  //  PIERCE +1" : ""}`, 42, 92);
+      const sector = this.currentSector();
+      ctx.font = "13px ui-monospace, monospace"; ctx.fillStyle = "#8ca7b3";
+      ctx.fillText(`MAP 3×3  //  SECTOR ${sector.column}:${sector.row}`, 42, 118);
+      ctx.font = "15px ui-monospace, monospace"; ctx.fillStyle = C.cyan;
       ctx.fillText(`FORMULA  //  ${this.formula()}`, 42, 632);
       ctx.textAlign = "center"; ctx.font = "13px ui-monospace, monospace"; ctx.fillStyle = "#8ca7b3";
       const blink = Math.round((1 - this.player.blinkCooldown / C.blinkCooldown) * 100);

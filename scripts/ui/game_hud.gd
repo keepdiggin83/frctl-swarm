@@ -8,6 +8,7 @@ var health_label: Label
 var timer_label: Label
 var score_label: Label
 var formation_label: Label
+var map_label: Label
 var rules_label: Label
 var debug_label: Label
 var xp_bar: ProgressBar
@@ -98,6 +99,11 @@ func _build_hud() -> void:
 	formation_label.position = Vector2(42, 88)
 	formation_label.size = Vector2(310, 30)
 	root.add_child(formation_label)
+
+	map_label = _label("MAP 3×3  //  SECTOR 2:2", 13, Color(0.55, 0.72, 0.74, 0.9))
+	map_label.position = Vector2(42, 116)
+	map_label.size = Vector2(310, 26)
+	root.add_child(map_label)
 
 	rules_label = _label("FORMULA  //  2 PULSE", 15, GameConfig.COLOR_CYAN)
 	rules_label.position = Vector2(42, 625)
@@ -261,6 +267,7 @@ func update_hud(data: Dictionary) -> void:
 	timer_label.add_theme_color_override("font_color", GameConfig.COLOR_RED if seconds <= 30 else GameConfig.COLOR_WHITE)
 	score_label.text = "SCORE  %06d  //  RISK ×%.2f" % [data.score, data.risk]
 	formation_label.text = "FORMATION  //  " + data.formation
+	map_label.text = "MAP 3×3  //  SECTOR " + data.sector
 	rules_label.text = "FORMULA  //  " + data.formula
 	debug_label.text = "FPS %d  //  E %d  U %d  P %d" % [Engine.get_frames_per_second(), data.enemies, data.units, data.projectiles]
 	xp_bar.max_value = data.xp_needed
