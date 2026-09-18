@@ -9,8 +9,8 @@
     blinkDistance: 150, blinkDuration: 0.12, blinkCooldown: 2,
     unitDamage: 10, unitInterval: 0.8, unitRange: 650, follow: 8,
     projectileSpeed: 620, projectileRadius: 4,
-    enemyHp: 20, enemySpeed: 76, enemyRadius: 13, enemyMax: 82,
-    spawnStart: 0.70, spawnGrowth: 1.18,
+    enemyHp: 20, enemySpeed: 76, enemyRadius: 13, enemyMax: 160,
+    spawnStart: 0.70, roundDuration: 30, spawnGrowth: 2,
     orbAttract: 150, orbCollect: 22, orbSpeed: 360,
     cyan: "#51f6d2", cyanDim: "#1b8e89", white: "#f3fbff",
     red: "#ff4f70", redDim: "#8f2949", yellow: "#ffd166",
@@ -92,6 +92,7 @@
       this.state = "playing";
       this.elapsed = 0;
       this.spawnBudget = 0;
+      this.round = 1;
       this.score = 0;
       this.kills = 0;
       this.xp = 0;
@@ -154,9 +155,10 @@
 
     update(dt) {
       this.elapsed += dt;
+      this.updateRound();
       this.lastHitAgo += dt;
       this.orbitPhase += dt * 0.45;
-      this.risk = 1 + Math.floor(this.elapsed / 30) * 0.25;
+      this.risk = 1 + (this.round - 1) * 0.25;
       this.updatePlayer(dt);
       this.updateSpawning(dt);
       this.updateEnemies(dt);
@@ -209,12 +211,22 @@
 
     updateSpawning(dt) {
       if (this.enemies.length >= C.enemyMax) return;
-      const rate = C.spawnStart * C.spawnGrowth ** Math.floor(this.elapsed / 30);
+      const rate = C.spawnStart * C.spawnGrowth ** (this.round - 1);
       this.spawnBudget += dt * rate;
       while (this.spawnBudget >= 1 && this.enemies.length < C.enemyMax) {
         this.spawnBudget -= 1;
         this.spawnEnemy();
       }
+    }
+
+    updateRound() {
+      const maxRounds = Math.ceil(C.runDuration / C.roundDuration);
+      const nextRound = Math.min(maxRounds, 1 + Math.floor(this.elapsed / C.roundDuration));
+      if (nextRound <= this.round) return;
+      this.round = nextRound;
+      const multiplier = C.spawnGrowth ** (this.round - 1);
+      this.floatFormula(this.player.x, this.player.y - 84, `ROUND ${pad(this.round)}  //  ENEMY RATE ×${multiplier}`, C.yellow);
+      this.screenShake = Math.max(this.screenShake, 4);
     }
 
     spawnEnemy() {
@@ -702,7 +714,7 @@
       ctx.fillText(`FORMULA  //  ${this.formula()}`, 42, 632);
       ctx.textAlign = "center"; ctx.font = "13px ui-monospace, monospace"; ctx.fillStyle = "#8ca7b3";
       const blink = Math.round((1 - this.player.blinkCooldown / C.blinkCooldown) * 100);
-      ctx.fillText(`BLINK ${pad(blink, 3)}%  //  AUTO-FIRE ONLINE`, 640, 67);
+      ctx.fillText(`ROUND ${pad(this.round)}  //  BLINK ${pad(blink, 3)}%  //  AUTO-FIRE ONLINE`, 640, 67);
       if (this.elapsed < 15) {
         ctx.globalAlpha = clamp((15 - this.elapsed) / 4, 0, 1); ctx.font = "16px ui-monospace, monospace"; ctx.fillStyle = C.yellow;
         ctx.fillText("WASD / ARROWS  MOVE     SPACE  BLINK", 640, 574); ctx.globalAlpha = 1;

@@ -28,6 +28,7 @@ var run_state := RunState.PLAYING
 var previous_state := RunState.PLAYING
 var elapsed := 0.0
 var spawn_budget := 0.0
+var current_round := 1
 var score := 0
 var best_score := 0
 var kills := 0
@@ -99,6 +100,7 @@ func reset_run() -> void:
 
 	elapsed = 0.0
 	spawn_budget = 0.0
+	current_round = 1
 	score = 0
 	kills = 0
 	xp = 0
@@ -138,6 +140,7 @@ func _process(delta: float) -> void:
 		return
 
 	elapsed += delta
+	update_round_state()
 	last_hit_ago += delta
 	orbit_phase += delta * 0.45
 	screen_shake = maxf(0.0, screen_shake - delta * 18.0)
@@ -167,7 +170,7 @@ func _process(delta: float) -> void:
 func update_spawning(delta: float) -> void:
 	if active_enemy_count() >= GameConfig.ENEMY_ACTIVE_MAX:
 		return
-	var rate := GameConfig.SPAWN_RATE_START * pow(GameConfig.SPAWN_GROWTH_PER_30, floorf(elapsed / 30.0))
+	var rate := GameConfig.SPAWN_RATE_START * pow(GameConfig.SPAWN_GROWTH_PER_ROUND, current_round - 1)
 	spawn_budget += delta * rate
 	while spawn_budget >= 1.0 and active_enemy_count() < GameConfig.ENEMY_ACTIVE_MAX:
 		spawn_budget -= 1.0
@@ -192,6 +195,17 @@ func spawn_enemy() -> void:
 	var minute_scale := 1.0 + maxf(0.0, elapsed - 120.0) / 60.0 * 0.18
 	var speed_scale := 1.0 + elapsed / GameConfig.RUN_DURATION * 0.20
 	enemy.activate(spawn_position, minute_scale, speed_scale)
+
+
+func update_round_state() -> void:
+	var max_rounds := int(ceil(GameConfig.RUN_DURATION / GameConfig.ROUND_DURATION))
+	var next_round := mini(max_rounds, 1 + int(floor(elapsed / GameConfig.ROUND_DURATION)))
+	if next_round <= current_round:
+		return
+	current_round = next_round
+	var multiplier := int(pow(GameConfig.SPAWN_GROWTH_PER_ROUND, current_round - 1))
+	fx.formula(player.position + Vector2(-128, -84), "ROUND %02d  //  ENEMY RATE ×%d" % [current_round, multiplier], GameConfig.COLOR_YELLOW)
+	screen_shake = maxf(screen_shake, 4.0)
 
 
 func update_enemies(delta: float) -> void:
@@ -461,7 +475,7 @@ func active_projectile_count() -> int:
 
 
 func current_risk() -> float:
-	return 1.0 + floorf(elapsed / 30.0) * 0.25
+	return 1.0 + (current_round - 1) * 0.25
 
 
 func current_formula() -> String:
@@ -482,6 +496,7 @@ func update_hud() -> void:
 		"elapsed": elapsed,
 		"score": score,
 		"risk": current_risk(),
+		"round": current_round,
 		"formation": formation + ("  //  PIERCE +1" if formation == "DELTA" else ""),
 		"formula": current_formula(),
 		"enemies": active_enemy_count(),

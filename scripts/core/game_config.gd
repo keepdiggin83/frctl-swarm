@@ -27,10 +27,11 @@ const PROJECTILE_POOL_SIZE := 180
 const ENEMY_HP := 20.0
 const ENEMY_SPEED := 76.0
 const ENEMY_RADIUS := 13.0
-const ENEMY_POOL_SIZE := 100
-const ENEMY_ACTIVE_MAX := 82
+const ENEMY_POOL_SIZE := 200
+const ENEMY_ACTIVE_MAX := 160
 const SPAWN_RATE_START := 0.70
-const SPAWN_GROWTH_PER_30 := 1.18
+const ROUND_DURATION := 30.0
+const SPAWN_GROWTH_PER_ROUND := 2.0
 
 const ORB_POOL_SIZE := 100
 const ORB_ATTRACT_RANGE := 150.0
@@ -51,4 +52,3 @@ const COLOR_RED := Color("ff4f70")
 const COLOR_RED_DIM := Color("8f2949")
 const COLOR_YELLOW := Color("ffd166")
 const COLOR_PURPLE := Color("a88bff")
-

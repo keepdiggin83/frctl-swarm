@@ -33,7 +33,8 @@ func _run() -> void:
 	if not _check(game.mitosis_trigger_count == 5, "MITOSIS did not reach its five-trigger cap"): return
 	if not _check(game.units.size() == 7, "Two initial units plus five MITOSIS units expected"): return
 	if not _check(game.formation == "DELTA", "Final formation must be DELTA"): return
-	print("FULL_RUN_OK: %d kills, %d units, %d score, %.1f seconds" % [game.kills, game.units.size(), game.score, game.elapsed])
+	if not _check(game.current_round == 6, "Three-minute run must reach round six"): return
+	print("FULL_RUN_OK: round %d, %d kills, %d units, %d score, %.1f seconds" % [game.current_round, game.kills, game.units.size(), game.score, game.elapsed])
 	quit(0)
 
 

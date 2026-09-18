@@ -112,8 +112,8 @@ func _build_hud() -> void:
 
 	status_label = _label("AUTO-FIRE  ONLINE", 13, Color(0.55, 0.72, 0.74, 0.9))
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	status_label.position = Vector2(510, 64)
-	status_label.size = Vector2(260, 26)
+	status_label.position = Vector2(430, 64)
+	status_label.size = Vector2(420, 26)
 	root.add_child(status_label)
 
 	hint_label = _label("WASD / ARROWS  MOVE      SPACE  BLINK", 16, GameConfig.COLOR_YELLOW)
@@ -267,7 +267,7 @@ func update_hud(data: Dictionary) -> void:
 	xp_bar.value = data.xp
 	xp_label.text = "ENERGY  %d / %d" % [data.xp, data.xp_needed]
 	hint_label.modulate.a = clampf((15.0 - data.elapsed) / 4.0, 0.0, 1.0)
-	status_label.text = "BLINK  %03d%%  //  AUTO-FIRE  ONLINE" % int(data.blink * 100.0)
+	status_label.text = "ROUND %02d  //  BLINK %03d%%  //  AUTO-FIRE ONLINE" % [data.round, int(data.blink * 100.0)]
 
 
 func show_upgrade(options: Array, level: int) -> void:
@@ -316,4 +316,3 @@ func hide_result() -> void:
 
 func show_paused(value: bool) -> void:
 	pause_overlay.visible = value
-
