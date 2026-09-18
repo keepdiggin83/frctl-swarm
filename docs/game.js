@@ -116,6 +116,7 @@
       this.orbs = [];
       this.effects = [];
       this.formulas = [];
+      this.particles = [];
       this.nextEnemyId = 1;
       this.nextUnitId = 1;
       this.player = {
@@ -351,6 +352,7 @@
       this.pulseKills++;
       this.score += Math.round(10 * this.risk * (this.lastHitAgo >= 5 ? 1.25 : 1));
       this.burst(enemy.x, enemy.y, C.red, 27);
+      this.shatter(enemy.x, enemy.y, C.red);
       if (this.player.blinkAgo <= 0.4) this.floatFormula(enemy.x, enemy.y - 18, "CLOSE CALL", C.yellow);
       this.orbs.push({ x: enemy.x, y: enemy.y, phase: Math.random() * Math.PI * 2 });
       this.checkMitosis();
@@ -499,12 +501,44 @@
     burst(x, y, color, size) { this.effects.push({ x, y, color, size, life: .28, max: .28 }); }
     floatFormula(x, y, text, color) { this.formulas.push({ x, y, text, color, life: .75, max: .75 }); }
 
+    shatter(x, y, color) {
+      const count = 28 + Math.floor(Math.random() * 11);
+      const phase = Math.random() * Math.PI * 2;
+      for (let index = 0; index < count; index++) {
+        const angle = phase + Math.PI * 2 * index / count + (Math.random() - .5) * .48;
+        const boost = index % 5 === 0 ? 1.25 : 1;
+        const speed = (95 + Math.random() * 245) * boost;
+        const life = .38 + Math.random() * .44;
+        this.particles.push({
+          x, y, px: x, py: y,
+          vx: Math.cos(angle) * speed + (Math.random() - .5) * 34,
+          vy: Math.sin(angle) * speed + (Math.random() - .5) * 34,
+          color, life, max: life,
+          size: 1.5 + Math.random() * 2.7,
+          rotation: Math.random() * Math.PI * 2,
+          spin: (Math.random() - .5) * 26,
+          shape: Math.floor(Math.random() * 3)
+        });
+      }
+      if (this.particles.length > 1200) this.particles.splice(0, this.particles.length - 1200);
+      this.screenShake = Math.max(this.screenShake, 2.5);
+    }
+
     updateEffects(dt) {
       this.screenShake = Math.max(0, this.screenShake - dt * 18);
       for (const effect of this.effects) effect.life -= dt;
       for (const formula of this.formulas) { formula.life -= dt; formula.y -= 34 * dt; }
+      for (const particle of this.particles) {
+        particle.life -= dt;
+        particle.px = particle.x; particle.py = particle.y;
+        particle.x += particle.vx * dt; particle.y += particle.vy * dt;
+        const drag = Math.exp(-2.8 * dt);
+        particle.vx *= drag; particle.vy *= drag;
+        particle.rotation += particle.spin * dt;
+      }
       this.effects = this.effects.filter((effect) => effect.life > 0);
       this.formulas = this.formulas.filter((formula) => formula.life > 0);
+      this.particles = this.particles.filter((particle) => particle.life > 0);
     }
 
     draw() {
@@ -613,6 +647,41 @@
         ctx.beginPath(); ctx.arc(effect.x, effect.y, radius, 0, Math.PI * 2); ctx.stroke();
       }
       ctx.globalAlpha = 1;
+
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.lineCap = "round";
+      for (const particle of this.particles) {
+        const alpha = clamp(particle.life / particle.max, 0, 1);
+        const speed = length(particle.vx, particle.vy);
+        const dx = speed > .01 ? particle.vx / speed : 1;
+        const dy = speed > .01 ? particle.vy / speed : 0;
+        const trail = clamp(speed * .035, 4, 16);
+        ctx.globalAlpha = alpha * .2;
+        ctx.strokeStyle = particle.color;
+        ctx.lineWidth = particle.size * 3.4;
+        ctx.beginPath(); ctx.moveTo(particle.x - dx * trail, particle.y - dy * trail); ctx.lineTo(particle.x, particle.y); ctx.stroke();
+        ctx.globalAlpha = alpha * .95;
+        ctx.strokeStyle = C.white;
+        ctx.lineWidth = Math.max(1, particle.size * .55);
+        ctx.beginPath(); ctx.moveTo(particle.x - dx * trail * .72, particle.y - dy * trail * .72); ctx.lineTo(particle.x, particle.y); ctx.stroke();
+
+        if (particle.shape === 1) {
+          const size = particle.size * 1.8;
+          ctx.beginPath();
+          ctx.moveTo(particle.x + Math.cos(particle.rotation) * size, particle.y + Math.sin(particle.rotation) * size);
+          ctx.lineTo(particle.x + Math.cos(particle.rotation + 2.25) * size, particle.y + Math.sin(particle.rotation + 2.25) * size);
+          ctx.lineTo(particle.x + Math.cos(particle.rotation + 4.5) * size, particle.y + Math.sin(particle.rotation + 4.5) * size);
+          ctx.closePath(); ctx.stroke();
+        } else if (particle.shape === 2) {
+          const size = particle.size * 1.5;
+          const ax = Math.cos(particle.rotation) * size, ay = Math.sin(particle.rotation) * size;
+          ctx.beginPath(); ctx.moveTo(particle.x - ax, particle.y - ay); ctx.lineTo(particle.x + ax, particle.y + ay);
+          ctx.moveTo(particle.x + ay, particle.y - ax); ctx.lineTo(particle.x - ay, particle.y + ax); ctx.stroke();
+        }
+      }
+      ctx.restore();
+
       ctx.textAlign = "center"; ctx.font = "18px ui-monospace, monospace";
       for (const formula of this.formulas) {
         ctx.globalAlpha = formula.life / formula.max; ctx.fillStyle = formula.color; ctx.fillText(formula.text, formula.x, formula.y);

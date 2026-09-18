@@ -293,6 +293,7 @@ func kill_enemy(enemy, source_unit_id: int) -> void:
 	var stable_multiplier := 1.25 if last_hit_ago >= 5.0 else 1.0
 	score += int(round(10.0 * current_risk() * stable_multiplier))
 	fx.burst(death_position, GameConfig.COLOR_RED, 27.0)
+	fx.shatter(death_position, GameConfig.COLOR_RED, randi_range(28, 38))
 	if player.is_blink_window():
 		fx.formula(death_position + Vector2(-42, -18), "CLOSE CALL", GameConfig.COLOR_YELLOW)
 	spawn_orb(death_position)
